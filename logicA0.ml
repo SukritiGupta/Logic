@@ -76,3 +76,95 @@ let rec subprop_at p1 p2 = if (subprop_at_me p1 p2) then [[]] else (match p2 wit
 ;;
 
 
+let rec truth p rho = match p with
+	T-> true
+	| F->false
+    | L(x) -> (rho x)
+    | Not(x) -> not(truth x rho)
+  	| And(x,y) -> (truth x rho) && (truth y rho)
+  	| Or(x,y) -> (truth x rho) || (truth y rho)
+  	| Impl(x,y) -> ( (not (truth x rho)) || (truth y rho))
+  	| Iff(x,y) -> ((truth x rho) && (truth y rho)) || ((not (truth x rho)) && (not (truth y rho)))
+  ;;	
+
+
+let rec nnf = function
+	T-> T
+	| Not(T)-> F
+	| F-> F
+	| Not(F)-> T
+    | L(x) -> L(x)
+    | Not(L(x)) -> Not(L(x))
+  	| And(x,y) -> And((nnf x), (nnf y))
+  	| Not(And(x,y)) -> Or((nnf (Not(x))), (nnf (Not(y))))
+  	| Or(x,y) -> Or((nnf x), (nnf y))
+  	| Not(Or(x,y)) -> And((nnf (Not(x))), (nnf (Not(y))))
+  	| Impl(x,y) -> Impl((nnf x), (nnf y))
+  	| Not(Impl(x,y)) -> And((nnf x), (nnf (Not(y))))
+  	| Iff(x,y) -> Or((And((nnf x),(nnf (y)))),(And((nnf (Not(x))),(nnf (Not(y))))))
+  	| Not(Iff(x,y)) -> Or((And((nnf x),(nnf (Not(y))))),(And((nnf (Not(x))),(nnf y))))
+  	| Not(Not(x)) -> (nnf x)
+  ;;
+
+
+
+let rec dnf_help = function
+	T -> T
+	| F -> F
+	| L(x) -> L(x)
+	| Not(L(x)) -> Not(L(x))
+	| And(x, Or(y,z)) -> Or((dnf_help (And(x,y))),(dnf_help (And(x,z))))
+	| And(Or(x,y), z) -> Or((dnf_help (And(x,z))),(dnf_help (And(y,z))))
+	| And(x,y) -> And((dnf_help x),(dnf_help y))
+	| Or(x,y) -> Or((dnf_help x),(dnf_help y))
+;;
+
+
+
+let dnf p = let s=ref (dnf_help (nnf p)) in (let quit_loop=ref false in (while not !quit_loop do let j=(dnf_help (!s)) in (if j=(!s) then quit_loop:=true else s:=j) done);(!s));;
+
+
+(* Or(Or(And(L("a"), L("b")), And(L("c"), L("d"))), And(L("e"), L("f")));; *)
+
+(* dnf (And(And(Or(L("a"), L("b")), Or(L("c"), L("d"))), Or(L("e"), L("f"))));;
+- : prop =
+Or
+ (Or (Or (And (And (L "a", L "c"), L "e"), And (And (L "b", L "c"), L "e")),
+   Or (And (And (L "a", L "d"), L "e"), And (And (L "b", L "d"), L "e"))),
+ Or (Or (And (And (L "a", L "c"), L "f"), And (And (L "b", L "c"), L "f")),
+  Or (And (And (L "a", L "d"), L "f"), And (And (L "b", L "d"), L "f"))))
+ *)
+
+
+(* # dnf (And(And(Or(L("a"), L("b")), And(L("c"), L("d"))), Or(L("e"), L("f"))));;
+- : prop =
+Or
+ (Or (And (And (L "a", And (L "c", L "d")), L "e"),
+   And (And (L "b", And (L "c", L "d")), L "e")),
+ Or (And (And (L "a", And (L "c", L "d")), L "f"),
+  And (And (L "b", And (L "c", L "d")), L "f"))) *)
+
+
+
+
+let rec cnf_help = function
+	T -> T
+	| F -> F
+	| L(x) -> L(x)
+	| Not(L(x)) -> Not(L(x))
+	| And(x,y) -> And((cnf_help x),(cnf_help y))
+	| Or(x, And(y,z)) -> And((cnf_help (Or(x,y))),(cnf_help (Or(x,z))))
+	| Or(And(x, y),z) -> And((cnf_help (Or(x,z))),(cnf_help (Or(y,z))))
+	| Or(x,y) -> Or((cnf_help x),(cnf_help y))
+;;
+
+let cnf p = let s=ref (cnf_help (nnf p)) in (let quit_loop=ref false in (while not !quit_loop do let j=(cnf_help (!s)) in (if j=(!s) then quit_loop:=true else s:=j) done);(!s));;
+
+(* # cnf (Or(Or(And(L("a"), L("b")), And(L("c"), L("d"))), And(L("e"), L("f"))));;
+- : prop =
+And
+ (And (And (Or (Or (L "a", L "c"), L "e"), Or (Or (L "b", L "c"), L "e")),
+   And (Or (Or (L "a", L "d"), L "e"), Or (Or (L "b", L "d"), L "e"))),
+ And (And (Or (Or (L "a", L "c"), L "f"), Or (Or (L "b", L "c"), L "f")),
+  And (Or (Or (L "a", L "d"), L "f"), Or (Or (L "b", L "d"), L "f"))))
+ *)
