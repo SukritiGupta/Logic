@@ -102,9 +102,9 @@ x::xs->x;;
 
 type ret_type = Proof of tree | Assign of rho;;
 
-let check_tautology p = (let l=(find_assignments (T(Node(p,false,false,false,[],[]),[]))) in (if (l=[[]]) then (Proof(full_develop (T(Node(p,false,false,false,[],[]),[])))) else (Assign(head l))  ));;
+let check_tautology p = (let l=(find_assignments (T(Node(p,false,false,false,[],[]),[]))) in (if (l=[]) then (Proof(full_develop (T(Node(p,false,false,false,[],[]),[])))) else (Assign(head l))  ));;
 
-let check_contradiction p = (let l=(find_assignments (T(Node(p,true,false,false,[],[]),[]))) in (if (l=[[]]) then (Proof(full_develop (T(Node(p,true,false,false,[],[]),[])))) else (Assign(head l))  ));;
+let check_contradiction p = (let l=(find_assignments (T(Node(p,true,false,false,[],[]),[]))) in (if (l=[]) then (Proof(full_develop (T(Node(p,true,false,false,[],[]),[])))) else (Assign(head l))  ));;
 
 
 let a=And(L("a"),Not(L("a")));;
@@ -308,7 +308,12 @@ let p2=T(Node(Iff(And(F,L("S")),F),true,false,false,[],[]),[]);;
 - : rho list = [[]; [("S", false)]]
  *)
 
-(* let prop1 = Impl(Impl( Impl(L("x1"), L("x2")) ,L("x1")),L("x1"));; *)
-(* let prop1 = And(F, L("x"));; *)
-(* let prop1 = Impl(Impl(Not(L("p")), Not(L("q"))) ,  Impl( Impl(Not(L("p")), L("q")) , L("p"))) *)
-(* let prop1 = Impl( Impl (L("p"), Impl(L("q"), L("r"))), Impl( Impl(L("p"), L("q")), Impl(L("p"), L("r")) ));; *)
+
+ (* # check_tautology (And(T,T));;
+- : ret_type =
+Proof
+ (T (Node (And (T, T), false, true, true, [], []),
+   [T (Node (T, false, true, true, [], [0]), []);
+    T (Node (T, false, true, true, [], [1]), [])]))
+# check_contradiction (And(T,T));;
+- : ret_type = Assign [] *)
