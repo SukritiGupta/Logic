@@ -158,3 +158,56 @@ Proof
                  [])])])])])])])]))
 *)
 
+
+
+let rec multi_select_node t = match t with
+  T(Node(p, b1, true , false, rho, intl) , x) -> (match x with []-> [] | [n1; n2] -> (multi_select_node n1)@(multi_select_node n2)  | [n1]-> (multi_select_node n1))
+| T(Node(p, b1, false, false, rho, intl) , x) -> (match x with []-> [intl@[2]] | [n1; n2] -> [intl@[2]]@(multi_select_node n1)@(multi_select_node n2)  | [n1]-> [intl@[2]]@(multi_select_node n1))
+| T(Node(p, b1, b2, true, rho, intl) , x) -> []
+;;
+
+
+
+
+type prop = T | F | L of string | Not of prop| And of prop * prop | Or of prop * prop | Impl of prop * prop | Iff of prop * prop;;
+type rho = (string * bool) list;;
+type node = Node of (prop * bool * bool * bool * rho * int list );;
+type tree = T of node * tree list ;;
+
+
+open List;;
+let rec partial_match t1 t2 =match (t1,t2) with
+(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(p,b1,b2',b3',rho1', l), x')         ) -> 
+
+(if ((((List.length x ) >= (List.length x' ) ) && ((List.length x' ) !=1))||  ((List.length x ) = (List.length x' ) ) ) then
+	(
+		match x' with 
+		[]->true
+		| [n1] -> (partial_match (head x) n1)
+		| [n1,n2] -> (match x with a::b -> ((partial_match a n1) && (partial_match b n2)))
+	)
+else false)
+|(_,_) -> false
+;;
+
+
+
+let rho_match a1 a2 = 
+
+
+let rec complete_match t1 t2 =match (t1,t2) with
+(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(p,b1,b2,b3,rho1', l), x')         ) -> 
+
+(if ( ((List.length x ) = (List.length x' ) ) ) then
+	(
+		match x' with 
+		[]->true
+		| [n1] -> ((partial_match (head x) n1) && (rho_match rho1 rho1'))
+		| [n1,n2] -> (match x with a::b -> ((partial_match a n1) && (partial_match b n2)   && (rho_match rho1 rho1') )  )
+	)
+else false)
+|(_,_) -> false
+;;
+
+
+
