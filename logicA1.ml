@@ -31,9 +31,11 @@ let rec pushdown_assign t incr = match t with
 | T(Node(p, b1, b2, true, rho, intl) , x) -> T(Node(p, b1, b2, true, rho, intl) , x)
 ;;
 
-
-let rec pushdown t l = match t with
-  T(Node(p, b1, b2, false, rho, intl) , []) -> T(Node(p, b1, b2, false, rho, intl) ,   T()  )
+let rec pushdown t tl = match t with
+  T(Node(p, b1, b2, false, rho, intl) , []) ->  T(Node(p, b1, b2, false, rho, intl) , tl) 
+  				(* match l with
+  				[p',b'] -> T(Node(p, b1, b2, false, rho, intl) ,  [ T(Node(p', b', false, false, rho, (intl::0) ), []) ] )
+  				[(p',b');(p'',b'')] -> T(Node(p, b1, b2, false, rho, intl) ,  [ T(Node(p', b', false, false, rho, (intl::0) ), []) ;  T(Node(p'', b'', false, false, rho, (intl::1) ), [])])   *)
 | T(Node(p, b1, b2, false, rho, intl) , [n1]) -> T(Node(p, b1, b2, false, rho, intl) , [(pushdown n1 l)])
 | T(Node(p, b1, b2, false, rho, intl) , [n1;n2]) -> T(Node(p, b1, b2, false, rho, intl) , [(pushdown n1 l)::(pushdown n2 l)])
 | T(Node(p, b1, b2, true, rho, intl) , x) -> T(Node(p, b1, b2, true, rho, intl) , x)
@@ -55,6 +57,22 @@ let rec step_develop t l = match (t,l) with
 	| (L(s), false) -> (let o=(find_assign rho s) in (if (o=2) then (pushdown_assign (T(Node(p, b1, true, false, rho, intl) , cl)) (var, false)) 
 														else (if (o=0) then (T(Node(p, b1, true, false, rho, intl) , cl)) else (T(Node(p, b1, true, true, rho, intl) , cl)) )))
 
-	| (Not(p'), b1) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [p',(not(b))] )
+	| (Not(p'), b1) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [  T(Node(p', (not(n1)), false, false, rho, (intl::0) ), [])	] )
 
-	|
+	| (And(p1,p2), true) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [  T(Node(p1, true, false, false, rho, (intl::0) ), [ T(Node(p2, true, false, false, rho, (intl::0) ) , [])] ) ]
+	(* let interm = (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [p1,true]) in (pushdown interm [p2, true]) *)
+	
+	| (Or(p1,p2), false) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [  T(Node(p1, false, false, false, rho, (intl::0) ), [ T(Node(p2, false, false, false, rho, (intl::0) ) , [])] ) ]
+	(* let interm = (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [p1,false]) in (pushdown interm [p2, false]) *)
+
+	| (Impl(p1,p2), false) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [  T(Node(p1, true, false, false, rho, (intl::0) ), [ T(Node(p2, false, false, false, rho, (intl::0) ) , [])] ) ]
+	(* let interm = (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [p1,true]) in (pushdown interm [p2, false]) *)
+
+	| (And(p1,p2), false) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [(p1,false); (p2,false)])
+
+	| (Or(p1,p2), true) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [(p1,true); (p2,true)])
+
+	| (Impl(p1,p2), false) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl)) [   (T()) ;  ()  ]   )
+
+
+
