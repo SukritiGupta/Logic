@@ -7,15 +7,15 @@ type tree = T of node * tree list ;;
 
 let rec select_node t = match t with
   T(Node(p, b1, true , false, rho, intl) , x) -> (match x with []-> [] | [n1; n2] -> let o1= (select_node n1) in (if (o1=[]) then (select_node n2) else o1)  | [n1]-> (select_node n1))
-| T(Node(p, b1, false, false, rho, intl) , x) -> intl
+| T(Node(p, b1, false, false, rho, intl) , x) -> intl@[2]
 | T(Node(p, b1, b2, true, rho, intl) , x) -> []
 ;;
 
-let rec find_assign rho var = match rho with
+let rec find_assign rho v = match rho with
   []->2
-| [(var, true);xs] ->1
-| [(var, false);xs] ->0
-| x::xs -> (find_assign xs var)
+| (var, true)::xs ->(if (var=v) then 1 else (find_assign xs v) )
+| (var, false)::xs ->(if (var=v) then 0 else (find_assign xs v) )
+(* | x::xs -> (find_assign xs var) *)
 ;;
 
 let rec pushdown_assign t incr = match t with
@@ -47,7 +47,7 @@ let rec pushdown t l = match t with
 let rec step_develop t l = match (t,l) with
   (T(Node(p, b1, b2, b3, rho, intl) , n1::nx), 0::xs) -> T(Node(p, b1, b2, b3, rho, intl) , (step_develop n1 xs)::nx)
 | (T(Node(p, b1, b2, b3, rho, intl) , [n1;n2]), 1::xs) -> T(Node(p, b1, b2, b3, rho, intl) , [n1;(step_develop n2 xs)])
-| (T(Node(p, b1, false, false, rho, intl) , cl), []) ->  (
+| (T(Node(p, b1, false, false, rho, intl) , cl), [2]) ->  (
 	match (p,b1) with 
 	(T,true) | (F, false) -> T(Node(p, b1, true, false, rho, intl) , cl)
 	| (T, false) | (F, true) -> T(Node(p, b1, true, true, rho, intl) , cl)
@@ -72,7 +72,8 @@ let rec step_develop t l = match (t,l) with
 ;;
 
 let rec contrad_path t = match t with
-T(Node(p, b1, b2, b3, rho, intl) , [])   | T(Node(p, b1, b2, true, rho, intl) , x)  -> t
+T(Node(p, b1, b2, b3, rho, intl) , [])   -> t
+| T(Node(p, b1, b2, true, rho, intl) , x)  -> t
 | T(Node(p, b1, b2, false, rho, intl) , [n1]) -> (let a= (contrad_path n1) in ( match a with
 	T(Node(_,_,_,true,_,_),_) -> (T(Node(p, b1, b2, true, rho, intl) , [a]))
 	|T(Node(_,_,_,false,_,_),_) -> (T(Node(p, b1, b2, false, rho, intl) , [a]))
@@ -85,6 +86,28 @@ T(Node(p, b1, b2, b3, rho, intl) , [])   | T(Node(p, b1, b2, true, rho, intl) , 
 ;;
 
 
-let rec full_develop root = (let interm=(select_node root) in (if (interm=[]) then root else (full_develop (contrad_path root))))
+let rec full_develop root = (let interm=(select_node root) in (if (interm=[]) then root else (full_develop (contrad_path (step_develop root interm)))));;
+(* let rec temp_develop root = (let interm=(select_node root) in (if (interm=[]) then root else ((contrad_path root))));; *)
+
+let rec send_assign t = match t with
+ T(Node(p, b1, b2, true, rho, intl) , x)  -> [[]]
+| T(Node(p, b1, b2, false, rho, intl) , []) -> [rho]
+| T(Node(p, b1, b2, false, rho, intl) , [n1]) -> (send_assign n1)
+| T(Node(p, b1, b2, false, rho, intl) , [n1;n2]) -> (send_assign n1)@(send_assign n2)
+;;
+
+let find_assignments root = (send_assign (full_develop root));;
+
+let head = function 
+x::xs->x;;
+
+type ret_type = Proof of tree | Assign of rho;;
+
+let check_tautology p = (let l=(find_assignments (T(Node(p,false,false,false,[],[]),[]))) in (if (l=[[]]) then (Proof(full_develop (T(Node(p,false,false,false,[],[]),[])))) else (Assign(head l))  ));;
+
+let check_contradiction p = (let l=(find_assignments (T(Node(p,true,false,false,[],[]),[]))) in (if (l=[[]]) then (Proof(full_develop (T(Node(p,true,false,false,[],[]),[])))) else (Assign(head l))  ));;
 
 
+let a=And(L("a"),Not(L("a")));;
+
+(T(Node(a,true,false,false,[],[]),[]))
