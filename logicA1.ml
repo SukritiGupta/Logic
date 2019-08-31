@@ -3,8 +3,6 @@ type rho = (string * bool) list;;
 type node = Node of (prop * bool * bool * bool * rho * int list );;
 type tree = T of node * tree list ;;
 
-truth val * explored * contradictary * rho * intl
-
 hashtbl se saara?? hashtbl, open_list is complete tree
 step_develop that given a selected node on a path, develops the tableau according to the rules  specified above.
 T(Node(p, b1, b2, b3, rho, intl) , x)
@@ -17,10 +15,6 @@ let rec select_node t = match t with
 
 //optional let rec contrad_up t l=
 
-
-let rec pushdown =
-
-
 let rec find_assign rho var = match rho with
   []->2
 | [(var, true)::xs] ->1
@@ -28,8 +22,23 @@ let rec find_assign rho var = match rho with
 | [x::xs] -> (find_assign xs var)
 ;;
 
+truth val * explored * contradictary * rho * intl
 
-let rec pushdown_assign t incr = 
+let rec pushdown_assign t incr = match t with
+  T(Node(p, b1, b2, false, rho, intl) , []) -> T(Node(p, b1, b2, false, (incr::rho), intl) , [])
+| T(Node(p, b1, b2, false, rho, intl) , [n1]) -> T(Node(p, b1, b2, false, (incr::rho), intl) , [(pushdown_assign n1 incr)])
+| T(Node(p, b1, b2, false, rho, intl) , [n1;n2]) -> T(Node(p, b1, b2, false, (incr::rho), intl) , [(pushdown_assign n1 incr)::(pushdown_assign n2 incr)])
+| T(Node(p, b1, b2, true, rho, intl) , x) -> T(Node(p, b1, b2, true, rho, intl) , x)
+;;
+
+
+let rec pushdown t l = match t with
+  T(Node(p, b1, b2, false, rho, intl) , []) -> T(Node(p, b1, b2, false, rho, intl) ,   T()  )
+| T(Node(p, b1, b2, false, rho, intl) , [n1]) -> T(Node(p, b1, b2, false, rho, intl) , [(pushdown n1 l)])
+| T(Node(p, b1, b2, false, rho, intl) , [n1;n2]) -> T(Node(p, b1, b2, false, rho, intl) , [(pushdown n1 l)::(pushdown n2 l)])
+| T(Node(p, b1, b2, true, rho, intl) , x) -> T(Node(p, b1, b2, true, rho, intl) , x)
+;;
+
 
 
 check when start if [] ie fully developed
@@ -41,4 +50,11 @@ let rec step_develop t l = match (t,l) with
 	(T,true) | (F, false) -> T(Node(p, b1, true, false, rho, intl) , cl)
 	| (T, false) | (F, true) -> T(Node(p, b1, true, true, rho, intl) , cl)
 	(* (contrad_up) *)
-	| (L(s), true) -> let o=(find_assign rho s) in (if (o=2) then  pushdown_assign   add else (if (o=1) then good else contradictary))
+	| (L(s), true) -> (let o=(find_assign rho s) in (if (o=2) then (pushdown_assign (T(Node(p, b1, true, false, rho, intl) , cl)) (var, true)) 
+														else (if (o=1) then (T(Node(p, b1, true, false, rho, intl) , cl)) else (T(Node(p, b1, true, true, rho, intl) , cl)) )))
+	| (L(s), false) -> (let o=(find_assign rho s) in (if (o=2) then (pushdown_assign (T(Node(p, b1, true, false, rho, intl) , cl)) (var, false)) 
+														else (if (o=0) then (T(Node(p, b1, true, false, rho, intl) , cl)) else (T(Node(p, b1, true, true, rho, intl) , cl)) )))
+
+	| (Not(p'), b1) -> (pushdown (T(Node(p, b1, true, false, rho, intl) , cl))  [p',(not(b))] )
+
+	|
