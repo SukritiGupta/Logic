@@ -109,5 +109,52 @@ let check_contradiction p = (let l=(find_assignments (T(Node(p,true,false,false,
 
 
 let a=And(L("a"),Not(L("a")));;
+let b= Impl(a,a);;
 
-(T(Node(a,true,false,false,[],[]),[]))
+(*  
+check_contradiction a;;
+- : ret_type =
+Proof
+ (T (Node (And (L "a", Not (L "a")), true, true, true, [], []),
+   [T (Node (L "a", true, true, true, [("a", true)], [0]),
+     [T (Node (Not (L "a"), true, true, true, [("a", true)], [0; 0]),
+       [T (Node (L "a", false, true, true, [("a", true)], [0; 0; 0]), [])])])]))
+
+check_tautology a;;
+- : ret_type = Assign [("a", false)]
+
+
+check_tautology b;;
+- : ret_type =
+Proof
+ (T
+   (Node
+     (Impl (And (L "a", Not (L "a")), And (L "a", Not (L "a"))), false, true,
+      true, [], []),
+   [T (Node (And (L "a", Not (L "a")), true, true, true, [], [0]),
+     [T (Node (And (L "a", Not (L "a")), false, true, true, [], [0; 0]),
+       [T (Node (L "a", true, true, true, [("a", true)], [0; 0; 0]),
+         [T
+           (Node (Not (L "a"), true, true, true, [("a", true)], [0; 0; 0; 0]),
+           [T
+             (Node (L "a", false, true, true, [("a", true)], [0; 0; 0; 0; 0]),
+             [T
+               (Node
+                 (L "a", false, false, false, [("a", true)],
+                  [0; 0; 0; 0; 0; 0]),
+               [])]);
+            T
+             (Node
+               (Not (L "a"), false, true, true, [("a", true)],
+                [0; 0; 0; 0; 1]),
+             [T
+               (Node
+                 (L "a", false, true, true, [("a", true)],
+                  [0; 0; 0; 0; 1; 0]),
+               [T
+                 (Node
+                   (L "a", true, false, false, [("a", true)],
+                    [0; 0; 0; 0; 1; 0; 0]),
+                 [])])])])])])])]))
+*)
+
