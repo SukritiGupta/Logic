@@ -166,48 +166,44 @@ let rec multi_select_node t = match t with
 | T(Node(p, b1, b2, true, rho, intl) , x) -> []
 ;;
 
-
-
-
-type prop = T | F | L of string | Not of prop| And of prop * prop | Or of prop * prop | Impl of prop * prop | Iff of prop * prop;;
-type rho = (string * bool) list;;
-type node = Node of (prop * bool * bool * bool * rho * int list );;
-type tree = T of node * tree list ;;
-
-
 open List;;
 let rec partial_match t1 t2 =match (t1,t2) with
-(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(p,b1,b2',b3',rho1', l), x')         ) -> 
+(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(phh,b1hh,b2',b3',rho1', lhh), x')         ) -> 
 
-(if ((((List.length x ) >= (List.length x' ) ) && ((List.length x' ) !=1))||  ((List.length x ) = (List.length x' ) ) ) then
+(   if   ((p=phh) && (l=lhh) && (b1=b1hh))   then (if ((((List.length x ) >= (List.length x' ) ) && ((List.length x' ) !=1))||  ((List.length x ) = (List.length x' ) ) ) then
 	(
 		match x' with 
 		[]->true
 		| [n1] -> (partial_match (head x) n1)
-		| [n1,n2] -> (match x with a::b -> ((partial_match a n1) && (partial_match b n2)))
+		| [n1;n2] -> (match x with [a;b] -> ((partial_match a n1) && (partial_match b n2)))
 	)
-else false)
+else false)  else false)
 |(_,_) -> false
 ;;
 
+let belongs a2 elem = (mem elem a2);;
 
-
-let rho_match a1 a2 = 
-
+let rho_match a1 a2 = (for_all    (belongs a2)     a1) && (for_all    (belongs a1)     a2);;
 
 let rec complete_match t1 t2 =match (t1,t2) with
-(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(p,b1,b2,b3,rho1', l), x')         ) -> 
+(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(phh,b1hh,b2hh,b3hh,rho1', lhh), x')         ) -> 
 
-(if ( ((List.length x ) = (List.length x' ) ) ) then
+(if  ((p=phh) && (l=lhh) && (b1=b1hh) && (b2=b2hh) && (b3=b3hh)) then (if ( ((List.length x ) = (List.length x' ) ) ) then
 	(
 		match x' with 
 		[]->true
 		| [n1] -> ((partial_match (head x) n1) && (rho_match rho1 rho1'))
-		| [n1,n2] -> (match x with a::b -> ((partial_match a n1) && (partial_match b n2)   && (rho_match rho1 rho1') )  )
+		| [n1;n2] -> (match x with [a;b] -> ((partial_match a n1) && (partial_match b n2)   && (rho_match rho1 rho1') )  )
 	)
-else false)
+else false) else false)
 |(_,_) -> false
 ;;
 
 
+let rec helper t1 t2 = (if (partial_match t1 t2) then (if (complete_match t1 t2) then true else (vtableau t1 t2)) else false)
+and 
+vtableau t1 t2 =   let pd = (map (step_develop t2) (multi_select_node t2)) in ( exists (helper t1) pd);;
 
+
+
+let valid_tableau t = match t with T(Node(p,b1,b2,b3,rho1, l), x) -> (vtableau t (T(Node(p,b1,false,false,[],[]),[])) );;
