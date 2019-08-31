@@ -158,29 +158,7 @@ Proof
                  [])])])])])])])]))
 *)
 
-
-
-(* let rec multi_select_node t = match t with
-  T(Node(p, b1, true , false, rho, intl) , x) -> (match x with []-> [] | [n1; n2] -> (multi_select_node n1)@(multi_select_node n2)  | [n1]-> (multi_select_node n1))
-| T(Node(p, b1, false, false, rho, intl) , x) -> (match x with []-> [intl@[2]] | [n1; n2] -> [intl@[2]]@(multi_select_node n1)@(multi_select_node n2)  | [n1]-> [intl@[2]]@(multi_select_node n1))
-| T(Node(p, b1, b2, true, rho, intl) , x) -> []
-;;
-
 open List;;
-let rec partial_match t1 t2 =match (t1,t2) with
-(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(phh,b1hh,b2',b3',rho1', lhh), x')         ) -> 
-
-(   if   ((p=phh) && (l=lhh) && (b1=b1hh))   then (if ((((List.length x ) >= (List.length x' ) ) && ((List.length x' ) !=1))||  ((List.length x ) = (List.length x' ) ) ) then
-	(
-		match x' with 
-		[]->true
-		| [n1] -> (partial_match (head x) n1)
-		| [n1;n2] -> (match x with [a;b] -> ((partial_match a n1) && (partial_match b n2)))
-	)
-else false)  else false)
-|(_,_) -> false
-;;
- *)
 let belongs a2 elem = (mem elem a2);;
 
 let rho_match a1 a2 = (for_all    (belongs a2)     a1) && (for_all    (belongs a1)     a2);;
@@ -200,12 +178,6 @@ else false) else false)
 ;;
  *)
 
-(* let rec helper t1 t2 = (if (partial_match t1 t2) then (if (complete_match t1 t2) then true else (vtableau t1 t2)) else false)
-and 
-vtableau t1 t2 =   let pd = (map (step_develop t2) (multi_select_node t2)) in ( exists (helper t1) pd);;
-*)
-
-
 let rec siz t = match t with 
 T(Node(p,b1,b2,b3,rho1, l), x) -> (match x with
 []->1
@@ -215,21 +187,23 @@ T(Node(p,b1,b2,b3,rho1, l), x) -> (match x with
 
 let rec complete_match t1 t2 = match t1 with
 T(Node(p,b1,b2,b3,rho, l), x) -> ( match t2 with
-	T(Node(p2,b12,b22,b32,rho2, l2), x2) -> (if (  (p1=p2) && (b1=b12) && (b2=b22) && (b3=b32) && (l=l2) && (rho_match rho rho2)
+	T(Node(p2,b12,b22,b32,rho2, l2), x2) -> (if (  (p=p2) && (b1=b12) && (b2=b22) && (b3=b32) && (l=l2) && (rho_match rho rho2)
 	) then 
 	( match (x,x2) with 
 		([],[])-> true
 		| ([n1],[n12]) -> (complete_match n1 n12)
 		| ([n1;n2],[n12;n22]) ->  ( (complete_match n1 n12) && (complete_match n2 n22))
+		| _ -> false
 	)
 else false))
 ;;
 
+(* let rec vtableau t1 t2 = let a=(siz t1) in (let b=(siz t2) in (if (a=b) 
+	then (complete_match t1 t2) else  (  if (a<b) then false 
+else ( let interm=(select_node t2) in (if (interm=[]) then false else  (vtableau t1 (contrad_path (step_develop t2 interm)))   ))) ))
+;; *)
+
+(* let valid_tableau t = match t with T(Node(p,b1,b2,b3,rho1, l), x) -> (vtableau t (T(Node(p,b1,false,false,[],[]),[])) );;  *)
 
 
-
-let rec vtableau t1 t2 = let a=(siz t1) in (let b=(siz t2) in (if (a=b) then (complete_match t1 t2) else  (  if (a>b) then false 
-else ( let interm=(select_node root) in (if (interm=[]) then false else  (contrad_path (step_develop root interm))))) ))
-;;
-
-let valid_tableau t = match t with T(Node(p,b1,b2,b3,rho1, l), x) -> (vtableau t (T(Node(p,b1,false,false,[],[]),[])) );; 
+let valid_tableau t = match t with T(Node(p,b1,b2,b3,rho1, l), x) -> (complete_match (full_develop t)  (full_develop (T(Node(p,b1,false,false,[],[]),[]))) );;
