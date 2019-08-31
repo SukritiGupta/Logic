@@ -31,12 +31,12 @@ let rec pushdown t l = match t with
   				[p',b'] -> T(Node(p, b1, b2, false, rho, intl) ,  [ T(Node(p', b', false, false, rho, (intl@[0]) ), []) ] )
   				|[(p',b');(p'',b'')] -> T(Node(p, b1, b2, false, rho, intl) ,  [ T(Node(p', b', false, false, rho, (intl@[0]) ), []) ;  T(Node(p'', b'', false, false, rho, (intl@[1]) ), [])])   
   				|[(p1,dummy1);(p2,dummy2);(dummyp, false)] ->
-			T(Node(p, b1, b2, false, rho, intl) , [  T(Node(p1, false, false, false, rho, (intl@[0]) ), [ T(Node(p2, true, false, false, rho, (intl@[0]) ) , [])] ); 
-													 T(Node(p1, true, false, false, rho, (intl@[1]) ), [ T(Node(p2, false, false, false, rho, (intl@[0]) ) , [])] )  ])
+			T(Node(p, b1, b2, false, rho, intl) , [  T(Node(p1, false, false, false, rho, (intl@[0]) ), [ T(Node(p2, true, false, false, rho, (intl@[0]@[0]) ) , [])] ); 
+													 T(Node(p1, true, false, false, rho, (intl@[1]) ), [ T(Node(p2, false, false, false, rho, (intl@[1]@[0]) ) , [])] )  ])
 
 				|[(p1,dummy1);(p2,dummy2);(dummyp, true)] ->
-			T(Node(p, b1, b2, false, rho, intl) , [  T(Node(p1, true, false, false, rho, (intl@[0]) ), [ T(Node(p2, true, false, false, rho, (intl@[0]) ) , [])] ); 
-													 T(Node(p1, false, false, false, rho, (intl@[1]) ), [ T(Node(p2, false, false, false, rho, (intl@[0]) ) , [])] )  ])   )
+			T(Node(p, b1, b2, false, rho, intl) , [  T(Node(p1, true, false, false, rho, (intl@[0]) ), [ T(Node(p2, true, false, false, rho, (intl@[0]@[0]) ) , [])] ); 
+													 T(Node(p1, false, false, false, rho, (intl@[1]) ), [ T(Node(p2, false, false, false, rho, (intl@[1]@[0]) ) , [])] )  ])   )
 | T(Node(p, b1, b2, false, rho, intl) , [n1]) -> T(Node(p, b1, b2, false, rho, intl) , [(pushdown n1 l)])
 | T(Node(p, b1, b2, false, rho, intl) , [n1;n2]) -> T(Node(p, b1, b2, false, rho, intl) , [(pushdown n1 l);(pushdown n2 l)])
 | T(Node(p, b1, b2, true, rho, intl) , x) -> T(Node(p, b1, b2, true, rho, intl) , x)
@@ -51,7 +51,6 @@ let rec step_develop t l = match (t,l) with
 	match (p,b1) with 
 	(T,true) | (F, false) -> T(Node(p, b1, true, false, rho, intl) , cl)
 	| (T, false) | (F, true) -> T(Node(p, b1, true, true, rho, intl) , cl)
-	(* (contrad_up) *)
 	| (L(s), true) -> (let o=(find_assign rho s) in (if (o=2) then (pushdown_assign (T(Node(p, b1, true, false, rho, intl) , cl)) (s, true)) 
 														else (if (o=1) then (T(Node(p, b1, true, false, rho, intl) , cl)) else (T(Node(p, b1, true, true, rho, intl) , cl)) )))
 	| (L(s), false) -> (let o=(find_assign rho s) in (if (o=2) then (pushdown_assign (T(Node(p, b1, true, false, rho, intl) , cl)) (s, false)) 
@@ -90,7 +89,7 @@ let rec full_develop root = (let interm=(select_node root) in (if (interm=[]) th
 (* let rec temp_develop root = (let interm=(select_node root) in (if (interm=[]) then root else ((contrad_path root))));; *)
 
 let rec send_assign t = match t with
- T(Node(p, b1, b2, true, rho, intl) , x)  -> [[]]
+ T(Node(p, b1, b2, true, rho, intl) , x)  -> []
 | T(Node(p, b1, b2, false, rho, intl) , []) -> [rho]
 | T(Node(p, b1, b2, false, rho, intl) , [n1]) -> (send_assign n1)
 | T(Node(p, b1, b2, false, rho, intl) , [n1;n2]) -> (send_assign n1)@(send_assign n2)
@@ -163,21 +162,6 @@ let belongs a2 elem = (mem elem a2);;
 
 let rho_match a1 a2 = (for_all    (belongs a2)     a1) && (for_all    (belongs a1)     a2);;
 
-(* let rec complete_match t1 t2 =match (t1,t2) with
-(    T(Node(p,b1,b2,b3,rho1, l), x)            ,       T(Node(phh,b1hh,b2hh,b3hh,rho1', lhh), x')         ) -> 
-
-(if  ((p=phh) && (l=lhh) && (b1=b1hh) && (b2=b2hh) && (b3=b3hh)) then (if ( ((List.length x ) = (List.length x' ) ) ) then
-	(
-		match x' with 
-		[]->true
-		| [n1] -> ((partial_match (head x) n1) && (rho_match rho1 rho1'))
-		| [n1;n2] -> (match x with [a;b] -> ((partial_match a n1) && (partial_match b n2)   && (rho_match rho1 rho1') )  )
-	)
-else false) else false)
-|(_,_) -> false
-;;
- *)
-
 let rec siz t = match t with 
 T(Node(p,b1,b2,b3,rho1, l), x) -> (match x with
 []->1
@@ -198,12 +182,133 @@ T(Node(p,b1,b2,b3,rho, l), x) -> ( match t2 with
 else false))
 ;;
 
-(* let rec vtableau t1 t2 = let a=(siz t1) in (let b=(siz t2) in (if (a=b) 
-	then (complete_match t1 t2) else  (  if (a<b) then false 
-else ( let interm=(select_node t2) in (if (interm=[]) then false else  (vtableau t1 (contrad_path (step_develop t2 interm)))   ))) ))
-;; *)
-
-(* let valid_tableau t = match t with T(Node(p,b1,b2,b3,rho1, l), x) -> (vtableau t (T(Node(p,b1,false,false,[],[]),[])) );;  *)
-
-
 let valid_tableau t = match t with T(Node(p,b1,b2,b3,rho1, l), x) -> (complete_match (full_develop t)  (full_develop (T(Node(p,b1,false,false,[],[]),[]))) );;
+
+let pR = Impl((Impl(Not(L("p")),Not(L("q")))),(Impl(Impl(Not(L("p")),L("q")),L("p"))));;
+
+(* # check_tautology pR;;
+- : ret_type =
+Proof
+ (T
+   (Node
+     (Impl (Impl (Not (L "p"), Not (L "q")),
+       Impl (Impl (Not (L "p"), L "q"), L "p")),
+      false, true, true, [], []),
+   [T (Node (Impl (Not (L "p"), Not (L "q")), true, true, true, [], [0]),
+     [T
+       (Node
+         (Impl (Impl (Not (L "p"), L "q"), L "p"), false, true, true, 
+          [], [0; 0]),
+       [T (Node (Not (L "p"), false, true, true, [], [0; 0; 0]),
+         [T
+           (Node
+             (Impl (Not (L "p"), L "q"), true, true, true, [], [0; 0; 0; 0]),
+           [T
+             (Node
+               (L "p", false, true, true, [("p", false)], [0; 0; 0; 0; 0]),
+             [T
+               (Node
+                 (L "p", true, true, true, [("p", false)],
+                  [0; 0; 0; 0; 0; 0]),
+               [T
+                 (Node
+                   (Not (L "p"), false, false, false, [("p", false)],
+                    [0; 0; 0; 0; 0; 0; 0]),
+                 []);
+                T
+                 (Node
+                   (L "q", true, false, false, [("p", false)],
+                    [0; 0; 0; 0; 0; 0; 1]),
+                 [])])])])]);
+        T (Node (Not (L "q"), true, true, true, [], [0; 0; 1]),
+         [T
+           (Node
+             (Impl (Not (L "p"), L "q"), true, true, true, [], [0; 0; 1; 0]),
+           [T
+             (Node
+               (L "p", false, true, true, [("p", false)], [0; 0; 1; 0; 0]),
+             [T
+               (Node
+                 (L "q", false, true, true, [("q", false); ("p", false)],
+                  [0; 0; 1; 0; 0; 0]),
+               [T
+                 (Node
+                   (Not (L "p"), false, true, true,
+                    [("q", false); ("p", false)], [0; 0; 1; 0; 0; 0; 0]),
+                 [T (Node (L "p", ...), ...); ...]);
+                ...]);
+              ...]);
+            ...]);
+          ...]);
+        ...]);
+      ...]);
+    ...]))
+ *)
+
+let pI = Impl ( L("p"), Impl(L("q"), L("p")));;
+
+(* check_tautology pI;;
+- : ret_type =
+Proof
+ (T (Node (Impl (L "p", Impl (L "q", L "p")), false, true, true, [], []),
+   [T (Node (L "p", true, true, true, [("p", true)], [0]),
+     [T
+       (Node (Impl (L "q", L "p"), false, true, true, [("p", true)], [0; 0]),
+       [T
+         (Node
+           (L "q", true, true, true, [("q", true); ("p", true)], [0; 0; 0]),
+         [T
+           (Node
+             (L "p", false, true, true, [("q", true); ("p", true)],
+              [0; 0; 0; 0]),
+           [])])])])]))
+ *)
+
+
+let f= T (Node (Impl (L "p", Impl (L "q", L "p")), false, true, false, [], []),
+   [T (Node (L "p", true, false, false, [("p", true)], [0]),
+     [T
+       (Node (Impl (L "q", L "p"), false, false, false, [("p", true)], [0; 0]),
+       [])])]);;
+
+(* # valid_tableau f;;
+- : bool = true *)
+
+let f2= T (Node (Impl (L "p", Impl (L "q", L "p")), false, true, true, [], []),
+   [T (Node (L "p", true, false, false, [("p", true)], [0]),
+     [T
+       (Node (Impl (L "q", L "p"), false, false, false, [("p", true)], [0; 0]),
+       [])])]);;
+
+(* # valid_tableau f2;;
+- : bool = false
+The visited boolean of root was changed
+ *)
+
+let p=T(Node(And(T,L("S")),true,false,false,[],[]),[]);;
+(* # find_assignments p;;
+- : rho list = [[("S", true)]]
+ *)
+
+let p2=T(Node(And(F,L("S")),true,false,false,[],[]),[]);;
+(* # find_assignments p2;;
+- : rho list = [[]] *)
+
+let p2=T(Node(Or(And(F,L("S")),F),true,false,false,[],[]),[]);;
+(* # find_assignments p2;;
+- : rho list = [[]] *)
+
+
+let p2=T(Node(Iff(F,L("S")),true,false,false,[],[]),[]);;
+(* # find_assignments p2;;
+- : rho list = [[("S", false)]] *)
+
+let p2=T(Node(Iff(And(F,L("S")),F),true,false,false,[],[]),[]);;
+(* # find_assignments p2;;
+- : rho list = [[]; [("S", false)]]
+ *)
+
+(* let prop1 = Impl(Impl( Impl(L("x1"), L("x2")) ,L("x1")),L("x1"));; *)
+(* let prop1 = And(F, L("x"));; *)
+(* let prop1 = Impl(Impl(Not(L("p")), Not(L("q"))) ,  Impl( Impl(Not(L("p")), L("q")) , L("p"))) *)
+(* let prop1 = Impl( Impl (L("p"), Impl(L("q"), L("r"))), Impl( Impl(L("p"), L("q")), Impl(L("p"), L("r")) ));; *)
