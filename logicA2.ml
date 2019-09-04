@@ -60,16 +60,30 @@ let rec put_gamma h newgamma = match  h with
 
 let rec prune h = ( let newgamma= (get_all_prop h []) in (put_gamma h newgamma));;
 
-let get_gamma l = match l with
-[] -> []
-| MP(gamma, p,q, h1, h2)::xs -> gamma
-| L(Ass(gamma, p))::xs -> gamma
-| L(K(gamma,p,q)) ::xs-> gamma
-| L(S(gamma,p,q,r))::xs -> gamma
-| L(R(gamma,p,q))::xs -> gamma
+let get_gamma h = match h with
+| MP(gamma, p,q, h1, h2) -> gamma
+| L(Ass(gamma, p)) -> gamma
+| L(K(gamma,p,q)) -> gamma
+| L(S(gamma,p,q,r)) -> gamma
+| L(R(gamma,p,q)) -> gamma
 ;;
 
-let graft h l =  let newgamma= (get_gamma l)
+exception Proof_not_given;;
+
+let rec replace p l = match l with
+| [] -> raise Proof_not_given
+| x::xs -> (if (p=(get_prop x)) then x else (replace p xs))
+
+let rec modify h l = match h with
+| MP(gamma, p,q, h1, h2) -> MP(gamma, p,q, (modify h1 l), (modify h2 l))
+| L(Ass(gamma, p)) -> (replace p l)
+| L(x) -> L(x)
+;;
+
+let graft h l =  (if l=[] then h else let newgamma= (get_gamma l) in ( let interm=(put_gamma h newgamma) in (modify interm l)))
+
+
+	
 
 
 
