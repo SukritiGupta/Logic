@@ -69,10 +69,12 @@ let get_gamma h = match h with
 ;;
 
 exception Proof_not_given;;
+exception Prop_not_in_gamma;;
 
 let rec replace p l = match l with
 | [] -> raise Proof_not_given
 | x::xs -> (if (p=(get_prop x)) then x else (replace p xs))
+;;
 
 let rec modify h l = match h with
 | MP(gamma, p,q, h1, h2) -> MP(gamma, p,q, (modify h1 l), (modify h2 l))
@@ -80,17 +82,25 @@ let rec modify h l = match h with
 | L(x) -> L(x)
 ;;
 
-let graft h l =  (if l=[] then h else let newgamma= (get_gamma l) in ( let interm=(put_gamma h newgamma) in (modify interm l)))
+let graft h l =  (if l=[] then h else let newgamma= (get_gamma l) in ( let interm=(put_gamma h newgamma) in (modify interm l)));;
+
+let rec remove e l = match l with
+| [] -> raise Prop_not_in_gamma
+| x::xs -> if (x=e) then xs else ([x]@(remove e xs))
+;;
+
+let special_tree  gamma  p = MP(gamma,     Impl(p,Impl(Impl(L("Any_prop"),p), p)) ,     Impl(Impl(p,Impl(L("Any_prop"),p)),  Impl(p,p))     ,   
+ L(S(gamma,p,Impl(L("Any_prop"),p),p)),
+ L(K(gamma, p, Impl(L("Any_prop"),p)))      
+);;
 
 
-	
-
-
-
-
-| MP(gamma, p,q, h1, h2) -> 
-| L(Ass(gamma, p)) -> 
-| L(K(gamma,p,q)) -> 
-| L(S(gamma,p,q,r)) -> 
-| L(R(gamma,p,q)) -> 
-
+let dedthm p h = let q=(get_prop h) in (  if (p=q) then let temp = (remove p gamma) in (MP(temp,Impl(p,Impl(L("Any_prop"),p)) ,Impl(p,p),(special_tree temp p),L(K(temp, p, L("Any_prop")))))
+else ( match h with
+| L(Ass(gamma, p1)) -> L(Ass( (remove p gamma), p1))
+| L(K(gamma,p1,q1)) -> L(K((remove p gamma),p1,q1))
+| L(S(gamma,p1,q1,r)) -> L(S((remove p gamma),p1,q1,r))
+| L(R(gamma,p1,q1)) -> 	L(R((remove p gamma),p1,q1))
+| MP(gamma, r,q1, h1, h2) -> let temp = (remove p gamma) in (MP(temp ,Impl(p,r) ,Impl(p,q),MP(temp,Impl(p,(Impl(r,q))),Impl((Impl(p,r)),Impl(p,q)), L(S(temp,p,r,q)),(dedthm p h1)) ,(dedthm p h2)))
+))
+;;
