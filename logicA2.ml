@@ -108,23 +108,19 @@ let rec dedthm p h = let q=(get_prop h) in (  if (p=q) then
 ) in (MP(temp,Impl(p,Impl(L("Any_prop"),p)) ,Impl(p,p),(special_tree temp p),Lf(K(temp, p, L("Any_prop"))))))
 
 else ( match h with
-| Lf(Ass(gamma, p1)) -> Lf(Ass( (remove p gamma), p1))
-| Lf(K(gamma,p1,q1)) -> Lf(K((remove p gamma),p1,q1))
-| Lf(S(gamma,p1,q1,r)) -> Lf(S((remove p gamma),p1,q1,r))
-| Lf(R(gamma,p1,q1)) -> 	Lf(R((remove p gamma),p1,q1))
+| Lf(Ass(gamma, p1)) ->let temp=(remove p gamma) in (MP(temp, p1 ,Impl(p,p1) , Lf(K(temp, p1,p)), Lf(Ass(temp,p1))    ))
+| Lf(K(gamma,p1,q1)) -> let temp=(remove p gamma) in (MP(temp, Impl(p1,Impl(q1,p1)) ,Impl(p,Impl(p1,Impl(p1,q1))) , Lf(K(temp,  Impl(p1,Impl(q1,p1)) ,p)), Lf( K(temp,p1,q1) )    ))
+| Lf(S(gamma,p1,q1,r)) -> let temp=(remove p gamma) in (MP(temp,       Impl(Impl(p1,(Impl(q1,r))) , (Impl((Impl(p1,q1)) , (Impl(p1,r)))))     ,Impl(p,    Impl(Impl(p1,(Impl(q1,r))) , (Impl((Impl(p1,q1)) , (Impl(p1,r)))))  ) , Lf(K(temp, Impl(Impl(p1,(Impl(q1,r))) , (Impl((Impl(p1,q1)) , (Impl(p1,r))))) ,p)),      Lf( S(temp,p1,q1,r)  )    ))
+| Lf(R(gamma,p1,q1)) -> let temp=(remove p gamma) in (MP(temp,   Impl((Impl(Not(p1),Not(q1))),Impl((Impl(Not(p1),q1),p1)))    ,Impl(p,    Impl((Impl(Not(p1),Not(q1))),Impl((Impl(Not(p1),q1),p1)))   ) , Lf(K(temp,   Impl((Impl(Not(p1),Not(q1))),Impl((Impl(Not(p1),q1),p1)))  ,p)), Lf(  R(temp,p1,q1)  )    ))
 | MP(gamma, r,q1, h1, h2) -> let temp = (remove p gamma) in (MP(temp ,Impl(p,r) ,Impl(p,q),MP(temp,Impl(p,(Impl(r,q))),Impl((Impl(p,r)),Impl(p,q)), Lf(S(temp,p,r,q)),(dedthm p h1)) ,(dedthm p h2)))
 ))
 ;;
 
-(* Implies introduction in assumption!? *)
-(* 
-
+ 
+(*
 let p = Not(Impl(T,T));;
-
 let b=(dedthm  p  (Lf(Ass([p],p))));;
-
 val b : hprooftree =
-
 MP ([], Impl (Not (Impl (T, T)), Impl (L "Any_prop", Not (Impl (T, T)))),
  Impl (Not (Impl (T, T)), Not (Impl (T, T))),
  MP ([],
@@ -182,46 +178,46 @@ let my_proof=MP([px;pdummy;Impl(px,q)],px,q , Lf(Ass([px;pdummy;Impl(px,q)],Impl
 
 dedthm (Impl(px,q)) my_proof;;
 
-MP ( gamma   ,
- 
-
- Impl (Impl (  px  ,  q   ),   px  ),
- 
-
- Impl (Impl (  px  ,  q   ),  q   ),
- 
-
- MP ( gamma   ,
-  Impl (Impl (  px  ,  q   ), Impl (  px  ,  q   )),
-  Impl (Impl (Impl (  px  ,  q   ),   px  ),
-   Impl (Impl (  px  ,  q   ),  q   )),
+- : hprooftree =
+MP ([Impl (T, L "x"); Impl (T, T)],
+ Impl (Impl (Impl (T, L "x"), L "x"), Impl (T, L "x")),
+ Impl (Impl (Impl (T, L "x"), L "x"), L "x"),
+ MP ([Impl (T, L "x"); Impl (T, T)],
+  Impl (Impl (Impl (T, L "x"), L "x"), Impl (Impl (T, L "x"), L "x")),
+  Impl (Impl (Impl (Impl (T, L "x"), L "x"), Impl (T, L "x")),
+   Impl (Impl (Impl (T, L "x"), L "x"), L "x")),
   Lf
-   (S ( gamma   , Impl (  px  ,  q   ),
-       px  ,  q   )),
-  MP ( gamma   ,
-   Impl (Impl (  px  ,  q   ),
-    Impl (L "Any_prop", Impl (  px  ,  q   ))),
-   Impl (Impl (  px  ,  q   ), Impl (  px  ,  q   )),
-   MP ( gamma   ,
-    Impl (Impl (  px  ,  q   ),
-     Impl (Impl (L "Any_prop", Impl (  px  ,  q   )),
-      Impl (  px  ,  q   ))),
+   (S ([Impl (T, L "x"); Impl (T, T)], Impl (Impl (T, L "x"), L "x"),
+     Impl (T, L "x"), L "x")),
+  MP ([Impl (T, L "x"); Impl (T, T)],
+   Impl (Impl (Impl (T, L "x"), L "x"),
+    Impl (L "Any_prop", Impl (Impl (T, L "x"), L "x"))),
+   Impl (Impl (Impl (T, L "x"), L "x"), Impl (Impl (T, L "x"), L "x")),
+   MP ([Impl (T, L "x"); Impl (T, T)],
+    Impl (Impl (Impl (T, L "x"), L "x"),
+     Impl (Impl (L "Any_prop", Impl (Impl (T, L "x"), L "x")),
+      Impl (Impl (T, L "x"), L "x"))),
     Impl
-     (Impl (Impl (  px  ,  q   ),
-       Impl (L "Any_prop", Impl (  px  ,  q   ))),
-     Impl (Impl (  px  ,  q   ), Impl (  px  ,  q   ))),
+     (Impl (Impl (Impl (T, L "x"), L "x"),
+       Impl (L "Any_prop", Impl (Impl (T, L "x"), L "x"))),
+     Impl (Impl (Impl (T, L "x"), L "x"), Impl (Impl (T, L "x"), L "x"))),
     Lf
-     (S ( gamma   , Impl (  px  ,  q   ),
-       Impl (L "Any_prop", Impl (  px  ,  q   )),
-       Impl (  px  ,  q   ))),
+     (S ([Impl (T, L "x"); Impl (T, T)], Impl (Impl (T, L "x"), L "x"),
+       Impl (L "Any_prop", Impl (Impl (T, L "x"), L "x")),
+       Impl (Impl (T, L "x"), L "x"))),
     Lf
-     (K ( gamma   , Impl (  px  ,  q   ),
-       Impl (L "Any_prop", Impl (  px  ,  q   ))))),
+     (K ([Impl (T, L "x"); Impl (T, T)], Impl (Impl (T, L "x"), L "x"),
+       Impl (L "Any_prop", Impl (Impl (T, L "x"), L "x"))))),
    Lf
-    (K ( gamma   , Impl (  px  ,  q   ),
+    (K ([Impl (T, L "x"); Impl (T, T)], Impl (Impl (T, L "x"), L "x"),
       L "Any_prop")))),
- 
+ MP ([Impl (T, L "x"); Impl (T, T)], Impl (T, L "x"),
+  Impl (Impl (Impl (T, L "x"), L "x"), Impl (T, L "x")),
+  Lf
+   (K ([Impl (T, L "x"); Impl (T, T)], Impl (T, L "x"),
+     Impl (Impl (T, L "x"), L "x"))),
+  Lf (Ass ([Impl (T, L "x"); Impl (T, T)], Impl (T, L "x")))))
 
- Lf (Ass ([Impl (T, L "x"); Impl (...); ...], ...)))
-
+  # valid_hprooftree (dedthm (Impl(px,q)) my_proof);;
+- : bool = true
  *)
