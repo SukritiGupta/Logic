@@ -90,22 +90,62 @@ let rec pad t l = match t with
 |    OrE(gamma,p,q,r,h1,h2,h3)->  OrE((union gamma l),p,q,r,(pad h1 l),(pad h2 l),(pad h3 l))
 ;;
 
-let rec graft t l = nahi mila toh same as generate hua ho skta
 
+(* Taken special care of change in gamma in some functions *)
+let rec graft_help t l gamma_new=  match t with
+(* nahi mila toh same as generate hua ho skta *)
+    Hyp(gamma,p)-> (replace p l gamma_new)
+|    TI(gamma)->   TI(gamma_new)
+|    ImpI(gamma,p,q,h1)->  ImpI(gamma_new,p,q,(graft_help h1 l (union gamma_new [p])))
+|    ImpE(gamma,p,q,h1,h2)->  ImpE(gamma_new,p,q,(graft_help h1 l gamma_new),(graft_help h2 l gamma_new))
+|    NotI(gamma,p,h1)->  NotI(gamma_new,p,(graft_help h1 l gamma_new))
+|    NotC(gamma,p,h1)->  NotC(gamma_new,p,(graft_help h1 l  (union gamma_new [Not(p)])))
+|    AndI(gamma,p,q,h1,h2)->  AndI(gamma_new,p,q,(graft_help h1 l gamma_new),(graft_help h2 l gamma_new))
+|    AndEL(gamma,p,q,h1)->  AndEL(gamma_new,p,q,(graft_help h1 l gamma_new))
+|    AndER(gamma,p,q,h1)->  AndER(gamma_new,p,q,(graft_help h1 l gamma_new))
+|    OrIL(gamma,p,q,h1)->  OrIL(gamma_new,p,q,(graft_help h1 l gamma_new))
+|    OrIR(gamma,p,q,h1)->  OrIR(gamma_new,p,q,(graft_help h1 l gamma_new))
+|    OrE(gamma,p,q,r,h1,h2,h3)->  OrE(gamma_new,p,q,r,(graft_help h1 l gamma_new),(graft_help h2 l (union gamma_new [p])),(graft_help h3 l (union gamma_new [q])))
 
+and rec replace p l gamma_new = match l with
+| [] -> (if (member p gamma_new) then Hyp(gamma_new,p) else raise Proof_not_given)
+| x::xs -> (if (p=(get_judgement x)) then (graft_help x [] gamma_new) else (replace p xs))
+;; 
 
-let get_judgement t = match t with
-    Hyp(gamma,p)->
-|    TI(gamma)-> 
-|    ImpI(gamma,p,q,h1)->
-|    ImpE(gamma,p,q,h1,h2)->
-|    NotI(gamma,p,h1)->
-|    NotC(gamma,p,h1)->
-|    AndI(gamma,p,q,h1,h2)->
-|    AndEL(gamma,p,q,h1)->
-|    AndER(gamma,p,q,h1)->
-|    OrIL(gamma,p,q,h1)->
-|    OrIR(gamma,p,q,h1)->
-|    OrE(gamma,p,q,r,h1,h2,h3)->
+let head l = match l with x::xs->x;;
+
+let graft t l =  (if l=[] then t else (let gamma_new= (get_gamma (head l)) in (graft_help t l gamma_new)));;
+
+let rec get_actual_not_generated t gen = match t with
+    Hyp(gamma,p)-> if (member p gen) then [] else [p]
+|    TI(gamma)-> []
+|    ImpI(gamma,p,q,h1)-> (get_actual_not_generated h1 (union gen [p]))
+|    ImpE(gamma,p,q,h1,h2)->(union (get_actual_not_generated h1 gen) (get_actual_not_generated h2 gen))
+|    NotI(gamma,p,h1)->(get_actual_not_generated h1 gen)
+|    NotC(gamma,p,h1)->(get_actual_not_generated h1 (union gen [Not(p)]))
+|    AndI(gamma,p,q,h1,h2)->(union (get_actual_not_generated h1 gen) (get_actual_not_generated h2 gen))
+|    AndEL(gamma,p,q,h1)->(get_actual_not_generated h1 gen)
+|    AndER(gamma,p,q,h1)->(get_actual_not_generated h1 gen)
+|    OrIL(gamma,p,q,h1)->(get_actual_not_generated h1 gen)
+|    OrIR(gamma,p,q,h1)->(get_actual_not_generated h1 gen)
+|    OrE(gamma,p,q,r,h1,h2,h3)->(union (union (get_actual_not_generated h1 gen) (get_actual_not_generated h2 (union gen [p]))) (get_actual_not_generated h2 (union gen [q])))
+;;
+
+let rec prune_helper t gamma_new= match t with
+    Hyp(gamma,p)->  Hyp(gamma_new,p)
+|    TI(gamma)->   TI(gamma_new)
+|    ImpI(gamma,p,q,h1)->  ImpI(gamma_new,p,q,(prune_helper h1 (union gamma_new [p])))
+|    ImpE(gamma,p,q,h1,h2)->  ImpE(gamma_new,p,q,(prune_helper h1 gamma_new),(prune_helper h2 gamma_new))
+|    NotI(gamma,p,h1)->  NotI(gamma_new,p,(prune_helper h1 gamma_new))
+|    NotC(gamma,p,h1)->  NotC(gamma_new,p,(prune_helper h1 (union gamma_new [Not(p)])))
+|    AndI(gamma,p,q,h1,h2)->  AndI(gamma_new,p,q,(prune_helper h1 gamma_new),(prune_helper h2 gamma_new))
+|    AndEL(gamma,p,q,h1)->  AndEL(gamma_new,p,q,(prune_helper h1 gamma_new))
+|    AndER(gamma,p,q,h1)->  AndER(gamma_new,p,q,(prune_helper h1 gamma_new))
+|    OrIL(gamma,p,q,h1)->  OrIL(gamma_new,p,q,(prune_helper h1 gamma_new))
+|    OrIR(gamma,p,q,h1)->  OrIR(gamma_new,p,q,(prune_helper h1 gamma_new))
+|    OrE(gamma,p,q,r,h1,h2,h3)->  OrE(gamma_new,p,q,r,(prune_helper h1 gamma_new),(prune_helper h2 (union gamma_new [p])),(prune_helper h3 (union gamma_new [q])))
+;;
+
+let prune t = let gamma_new=(get_actual_not_generated t []) in (prune_helper t gamma_new);;
 
 
