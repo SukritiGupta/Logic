@@ -8,6 +8,7 @@ NotC prop list * prop * ndprooftree | AndI prop list * prop * prop * ndprooftree
 AndER prop list * prop * prop * ndprooftree | OrIL prop list * prop * prop * ndprooftree|
 OrIR prop list * prop * prop * ndprooftree | 
 OrE prop list * prop * prop * prop * ndprooftree * ndprooftree * ndprooftree
+;;
 
 let rec member a l= match l with
   []-> false
@@ -32,19 +33,64 @@ let get_judgement t = match t with
 |    OrIL(gamma,p,q,h1)-> Or(p,q)
 |    OrIR(gamma,p,q,h1)-> Or(p,q)
 |    OrE(gamma,p,q,r,h1,h2,h3)-> r
+;;
+
+let get_gamma t = match t with
+    Hyp(gamma,p)-> gamma
+|    TI(gamma)-> gamma
+|    ImpI(gamma,p,q,h1)-> gamma
+|    ImpE(gamma,p,q,h1,h2)-> gamma
+|    NotI(gamma,p,h1)-> gamma
+|    NotC(gamma,p,h1)-> gamma
+|    AndI(gamma,p,q,h1,h2)-> gamma
+|    AndEL(gamma,p,q,h1)-> gamma
+|    AndER(gamma,p,q,h1)-> gamma
+|    OrIL(gamma,p,q,h1)-> gamma
+|    OrIR(gamma,p,q,h1)-> gamma
+|    OrE(gamma,p,q,r,h1,h2,h3)-> gamma
+;;
+
+list_subset l1 l2 = match l2 with
+    [] -> true
+|    x::xs-> if (member x l1) then (list_subset l1 xs) else false
+;;
+
+list_equal l1 l2 = (list_subset l1 l2) && (list_subset l2 l1);;
+
 
 
 let rec valid_ndprooftree t = match t with
+    Hyp(gamma,p)-> (member p gamma)
+|    TI(gamma)-> T
+|    ImpI(gamma,p,q,h1)-> (valid_ndprooftree h1) && (q=(get_judgement h1)) && (list_equal (get_gamma h1) (union gamma [p])) && (not(member gamma p))
+|    ImpE(gamma,p,q,h1,h2)->(valid_ndprooftree h1) && (valid_ndprooftree h2) && (Impl(p,q)=(get_judgement h1)) && (p=(get_judgement h2)) && (list_equal gamma (get_gamma h1)) && (list_equal gamma (get_gamma h2))
+|    NotI(gamma,p,h1)-> (valid_ndprooftree h1) && (F=(get_judgement h1)) && (list_equal gamma (get_gamma h1))
+|    NotC(gamma,p,h1)-> (valid_ndprooftree h1) && (F=(get_judgement h1)) &&(not(member (Not(p)) gamma)) && (list_equal (get_gamma h1) (union gamma [Not(p)]))
+|    AndI(gamma,p,q,h1,h2)-> (valid_ndprooftree h1) && (valid_ndprooftree h2) && (p=(get_judgement h1)) && (q=(get_judgement h2)) && (list_equal gamma (get_gamma h1)) && (list_equal gamma (get_gamma h2))
+|    AndEL(gamma,p,q,h1)-> (valid_ndprooftree h1) && (And(p,q)=(get_judgement h1)) && (list_equal gamma (get_gamma h1))
+|    AndER(gamma,p,q,h1)-> (valid_ndprooftree h1) && (And(p,q)=(get_judgement h1)) && (list_equal gamma (get_gamma h1))
+|    OrIL(gamma,p,q,h1)-> (valid_ndprooftree h1) && (p=(get_judgement h1)) && (list_equal gamma (get_gamma h1))
+|    OrIR(gamma,p,q,h1)-> (valid_ndprooftree h1) && (q=(get_judgement h1)) && (list_equal gamma (get_gamma h1))
+|    OrE(gamma,p,q,r,h1,h2,h3)-> (valid_ndprooftree h1) && (valid_ndprooftree h2) && (valid_ndprooftree h3) && (Or(p,q)=(get_judgement h1)) && (r=(get_judgement h2)) && (r=(get_judgement h3)) && 
+(list_equal gamma (get_gamma h1)) && (list_equal (get_gamma h1) (union gamma [p])) && (list_equal (get_gamma h1) (union gamma [q]))
+;;
 
-Hyp(gamma,p)->
+let rec pad t l = match t with
+    Hyp(gamma,p)-> Hyp((union gamma l),p)
+|    TI(gamma)->   TI((union gamma l))
+|    ImpI(gamma,p,q,h1)->  ImpI((union gamma l),p,q,(pad h1 l))
+|    ImpE(gamma,p,q,h1,h2)->  ImpE((union gamma l),p,q,(pad h1 l),(pad h2 l))
+|    NotI(gamma,p,h1)->  NotI((union gamma l),p,(pad h1 l))
+|    NotC(gamma,p,h1)->  NotC((union gamma l),p,(pad h1 l))
+|    AndI(gamma,p,q,h1,h2)->  AndI((union gamma l),p,q,(pad h1 l),(pad h2 l))
+|    AndEL(gamma,p,q,h1)->  AndEL((union gamma l),p,q,(pad h1 l))
+|    AndER(gamma,p,q,h1)->  AndER((union gamma l),p,q,(pad h1 l))
+|    OrIL(gamma,p,q,h1)->  OrIL((union gamma l),p,q,(pad h1 l))
+|    OrIR(gamma,p,q,h1)->  OrIR((union gamma l),p,q,(pad h1 l))
+|    OrE(gamma,p,q,r,h1,h2,h3)->  OrE((union gamma l),p,q,r,(pad h1 l),(pad h2 l),(pad h3 l))
+;;
 
-
-
-
-
-
-
-
+let rec graft t l = nahi mila toh same as generate hua ho skta
 
 
 
