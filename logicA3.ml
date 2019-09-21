@@ -2,12 +2,12 @@ type prop = T | F | L of string
 | Not of prop| And of prop * prop | Or of prop * prop 
 | Impl of prop * prop | Iff of prop * prop;;
 
-type ndprooftree = Hyp of prop list * prop| TI of prop list| ImpI prop list * prop * prop * ndprooftree |
-ImpE prop list * prop * prop * ndprooftree * ndprooftree | NotI prop list * prop * ndprooftree |
-NotC prop list * prop * ndprooftree | AndI prop list * prop * prop * ndprooftree * ndprooftree| AndEL prop list * prop * prop * ndprooftree|
-AndER prop list * prop * prop * ndprooftree | OrIL prop list * prop * prop * ndprooftree|
-OrIR prop list * prop * prop * ndprooftree | 
-OrE prop list * prop * prop * prop * ndprooftree * ndprooftree * ndprooftree
+type ndprooftree = Hyp of prop list * prop| TI of prop list| ImpI of prop list * prop * prop * ndprooftree |
+ImpE of prop list * prop * prop * ndprooftree * ndprooftree | NotI of prop list * prop * ndprooftree |
+NotC of prop list * prop * ndprooftree | AndI of prop list * prop * prop * ndprooftree * ndprooftree| AndEL of prop list * prop * prop * ndprooftree|
+AndER of prop list * prop * prop * ndprooftree | OrIL of prop list * prop * prop * ndprooftree|
+OrIR of prop list * prop * prop * ndprooftree | 
+OrE of prop list * prop * prop * prop * ndprooftree * ndprooftree * ndprooftree
 ;;
 
 let rec member a l= match l with
@@ -50,19 +50,19 @@ let get_gamma t = match t with
 |    OrE(gamma,p,q,r,h1,h2,h3)-> gamma
 ;;
 
-list_subset l1 l2 = match l2 with
+let rec list_subset l1 l2 = match l2 with
     [] -> true
 |    x::xs-> if (member x l1) then (list_subset l1 xs) else false
 ;;
 
-list_equal l1 l2 = (list_subset l1 l2) && (list_subset l2 l1);;
+let list_equal l1 l2 = (list_subset l1 l2) && (list_subset l2 l1);;
 
 
 
 let rec valid_ndprooftree t = match t with
     Hyp(gamma,p)-> (member p gamma)
-|    TI(gamma)-> T
-|    ImpI(gamma,p,q,h1)-> (valid_ndprooftree h1) && (q=(get_judgement h1)) && (list_equal (get_gamma h1) (union gamma [p])) && (not(member gamma p))
+|    TI(gamma)-> true
+|    ImpI(gamma,p,q,h1)-> (valid_ndprooftree h1) && (q=(get_judgement h1)) && (list_equal (get_gamma h1) (union gamma [p])) && (not(member p gamma))
 |    ImpE(gamma,p,q,h1,h2)->(valid_ndprooftree h1) && (valid_ndprooftree h2) && (Impl(p,q)=(get_judgement h1)) && (p=(get_judgement h2)) && (list_equal gamma (get_gamma h1)) && (list_equal gamma (get_gamma h2))
 |    NotI(gamma,p,h1)-> (valid_ndprooftree h1) && (F=(get_judgement h1)) && (list_equal gamma (get_gamma h1))
 |    NotC(gamma,p,h1)-> (valid_ndprooftree h1) && (F=(get_judgement h1)) &&(not(member (Not(p)) gamma)) && (list_equal (get_gamma h1) (union gamma [Not(p)]))
@@ -90,6 +90,7 @@ let rec pad t l = match t with
 |    OrE(gamma,p,q,r,h1,h2,h3)->  OrE((union gamma l),p,q,r,(pad h1 l),(pad h2 l),(pad h3 l))
 ;;
 
+exception Proof_not_given;;
 
 (* Taken special care of change in gamma in some functions *)
 let rec graft_help t l gamma_new=  match t with
@@ -107,9 +108,9 @@ let rec graft_help t l gamma_new=  match t with
 |    OrIR(gamma,p,q,h1)->  OrIR(gamma_new,p,q,(graft_help h1 l gamma_new))
 |    OrE(gamma,p,q,r,h1,h2,h3)->  OrE(gamma_new,p,q,r,(graft_help h1 l gamma_new),(graft_help h2 l (union gamma_new [p])),(graft_help h3 l (union gamma_new [q])))
 
-and rec replace p l gamma_new = match l with
-| [] -> (if (member p gamma_new) then Hyp(gamma_new,p) else raise Proof_not_given)
-| x::xs -> (if (p=(get_judgement x)) then (graft_help x [] gamma_new) else (replace p xs))
+and replace p l gamma_new = match l with
+| [] -> (if (member p gamma_new) then (Hyp(gamma_new,p)) else raise Proof_not_given)
+| x::xs -> (if (p=(get_judgement x)) then (graft_help x [] gamma_new) else (replace p xs gamma_new))
 ;; 
 
 let head l = match l with x::xs->x;;
@@ -149,3 +150,23 @@ let rec prune_helper t gamma_new= match t with
 let prune t = let gamma_new=(get_actual_not_generated t []) in (prune_helper t gamma_new);;
 
 
+
+
+(* let q = And(L("a"), Or(L("a"),L("b")));;
+let p=L("a");;
+let tree1 = ImpI([],p,q,AndI([p],p,Or(L("a"),L("b")),Hyp([p],p),OrIL([p],p,L("b"),Hyp([p],p))));;
+# valid_ndprooftree tree1;;
+- : bool = true
+# tree1=(prune tree1);;
+- : bool = true
+let tree2= pad tree1 [And(T,L("x"))];;
+# valid_ndprooftree tree2;;
+(* - : bool = true *)
+# tree1=(prune tree2);;
+(* - : bool = true *)
+
+
+graft tree1 [Hyp([p;q],p)];;
+# tree1=(prune (graft tree1 [Hyp([p;q],p)]));;
+- : bool = true
+ *)
