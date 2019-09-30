@@ -144,3 +144,32 @@ let rec find_and_replace t= match t with
 
 
 let rec normalise t = try (let x=(find_rpair t) in (normalise (find_and_replace t))) with Normalised->t;;
+
+(* let q = And(L("a"), Or(L("a"),L("b")));;
+let p=L("a");;
+let tree1 = ImpI([],p,q,AndI([p],p,Or(L("a"),L("b")),Hyp([p],p),OrIL([p],p,L("b"),Hyp([p],p))));;
+
+
+let gamma=[L"y";Impl(L"y",L"x");And(L"y",L"z")];;
+let tree=ImpE(gamma,L"y",L"x", Hyp(gamma,Impl(L"y",L"x"))  , Hyp(gamma,L"y") );;
+
+# find_rpair tree;;
+Exception: Normalised.
+
+let gamma2=[Impl(L"y",L"x");And(L"y",L"z")];;
+let tree2=ImpI(gamma2,L"y",L"x",tree);;
+let tree3=ImpE(gamma2,L"y",L"x",tree2,AndEL(gamma2,L"y",L"z",Hyp(gamma2,And(L"y",L"z"))));;
+
+# simplify1 tree3;;
+- : ndprooftree =
+ImpE ([Impl (L "y", L "x"); And (L "y", L "z")], L "y", L "x",
+ Hyp ([Impl (L "y", L "x"); And (L "y", L "z")], Impl (L "y", L "x")),
+ AndEL ([Impl (L "y", L "x"); And (L "y", L "z")], L "y", L "z",
+  Hyp ([Impl (L "y", L "x"); And (L "y", L "z")], And (L "y", L "z"))))
+
+# valid_ndprooftree (simplify1 tree3);;
+- : bool = true
+
+# (simplify1 tree3)=(normalise tree3);;
+- : bool = true
+ *)
