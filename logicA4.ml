@@ -35,6 +35,26 @@ let get_judgement t = match t with
 |    OrE(gamma,p,q,r,h1,h2,h3)-> r
 ;;
 
+
+let get_gamma t = match t with
+    Hyp(gamma,p)-> gamma
+|    TI(gamma)-> gamma
+|    ImpI(gamma,p,q,h1)-> gamma
+|    ImpE(gamma,p,q,h1,h2)-> gamma
+|    NotI(gamma,p,h1)-> gamma
+|    NotC(gamma,p,h1)-> gamma
+|    AndI(gamma,p,q,h1,h2)-> gamma
+|    AndEL(gamma,p,q,h1)-> gamma
+|    AndER(gamma,p,q,h1)-> gamma
+|    OrIL(gamma,p,q,h1)-> gamma
+|    OrIR(gamma,p,q,h1)-> gamma
+|    OrE(gamma,p,q,r,h1,h2,h3)-> gamma
+;;
+
+
+
+exception Proof_not_given;;
+
 let rec graft_help t l gamma_new=  match t with
 (* nahi mila toh same as generate hua ho skta *)
     Hyp(gamma,p)-> (replace p l gamma_new)
@@ -103,7 +123,7 @@ let simplify1 t = match t with
     ImpE(gamma,p,q,h1,h2)-> (graft (get_inner_tree h1 0) ([h2]))
 |    AndEL(gamma,p,q,h1)-> (get_inner_tree h1 0)
 |    AndER(gamma,p,q,h1)-> (get_inner_tree h1 1)
-|    OrE(gamma,p,q,r,h1,h2,h3)-> (if ((get_name h1)="OrIL") then (graft h2 [(get_inner_tree h1)]) else (graft h3 [(get_inner_tree h1)]))
+|    OrE(gamma,p,q,r,h1,h2,h3)-> (if ((get_name h1)="OrIL") then (graft h2 [(get_inner_tree h1 0)]) else (graft h3 [(get_inner_tree h1 0)]))
 ;;
 
 
@@ -114,10 +134,13 @@ let rec find_and_replace t= match t with
 |    ImpE(gamma,p,q,h1,h2)-> if ((get_name h1)="ImpI") then (find_and_replace (simplify1 t)) else ((ImpE(gamma,p,q,(find_and_replace h1),(find_and_replace h2))) )
 |    NotI(gamma,p,h1)-> NotI(gamma,p,(find_and_replace h1))
 |    NotC(gamma,p,h1)-> NotC(gamma,p,(find_and_replace h1))
-|    AndI(gamma,p,q,h1,h2)-> 
+|    AndI(gamma,p,q,h1,h2)-> AndI(gamma,p,q,(find_and_replace h1),(find_and_replace h2))
 |    AndEL(gamma,p,q,h1)-> if ((get_name h1)="AndI") then (find_and_replace (simplify1 t)) else (AndEL(gamma,p,q,(find_and_replace h1)))
 |    AndER(gamma,p,q,h1)-> if ((get_name h1)="AndI") then (find_and_replace (simplify1 t)) else (AndER(gamma,p,q,(find_and_replace h1)))
 |    OrIL(gamma,p,q,h1)-> OrIL(gamma,p,q,(find_and_replace h1))
 |    OrIR(gamma,p,q,h1)-> OrIR(gamma,p,q,(find_and_replace h1))
 |    OrE(gamma,p,q,r,h1,h2,h3)-> if (((get_name h1)="OrIL")||((get_name h1)="OrIR")) then (find_and_replace (simplify1 t)) else (OrE(gamma,p,q,r,(find_and_replace h1),(find_and_replace h2),(find_and_replace h3)))
 ;;
+
+
+let rec normalise t = try (let x=(find_rpair t) in (normalise (find_and_replace t))) with Normalised->t;;
