@@ -135,7 +135,7 @@ exception NO_UNIF_POSSIBLE;;
 (* given two literals; can they be unified? *)
 let literal_bool l1 l2 donelist c1i c2i= match (l1,l2) with
 | (P(t1),N(t2)) | (N(t1),P(t2))-> if (List.mem (l1,l2,c1i,c2i) donelist ) then raise NO_UNIF_POSSIBLE 
-								  else (try ((mgu t1 t2);(l1,l2,c1i,c2i)) with NOT_UNIFIABLE -> raise NO_UNIF_POSSIBLE)
+								  else (try (let t=(mgu t1 t2) in (l1,l2,c1i,c2i)) with NOT_UNIFIABLE -> raise NO_UNIF_POSSIBLE)
 | _ -> raise NO_UNIF_POSSIBLE
 ;;
 
@@ -154,13 +154,69 @@ let rec clause_list l donelist= match l with
 | [] -> raise NO_UNIF_POSSIBLE
 | x::xs -> (match xs with 
 	[]->raise NO_UNIF_POSSIBLE 
-	| y::ys -> try (clause_bool x y donelist x) with NO_UNIF_POSSIBLE->try (clause_list (x::ys) donelist) with NO_UNIF_POSSIBLE->(clause_list xs donelist)
+	| y::ys -> try (clause_bool x y donelist x) 
+with NO_UNIF_POSSIBLE->(try (clause_list (x::ys) donelist) with NO_UNIF_POSSIBLE->(clause_list xs donelist)))
+;;
+
+let rec remove c l = match c with
+[] -> []
+| x::xs -> (if (x=l) then (remove xs l) else ([x]@(remove xs l)))
 ;;
 
 
-let one_step_resolution l1 l2 c1 c2 = match (l1,l2) with
-(P(t1),N(t2)) | (N(t1),P(t2))-> (let unif=(mgu t1 t2) and c1n=(remove c1 l1) and c2n=(remove c2 l1) in (map (subst unif) (union c1n c2n)))
-//remove duplicates created possibly dueto unification
+let subst_literal unif literal= match literal with
+P(t) -> P(subst unif t)
+|N(t) -> N(subst unif t)
+;;
+
+let one_step_resolution (l1,l2,c1,c2) = match (l1,l2) with
+(P(t1),N(t2)) | (N(t1),P(t2))-> (let unif=(mgu t1 t2) and c1n=(remove c1 l1) and c2n=(remove c2 l2) in (map (subst_literal unif) (union c1n c2n)))
+;;
+
+exception Finished_no_contradiction;;
+exception Contradiction_reached;;
+
+let rec general_resolution l donelist = try (let t=(clause_list l donelist) in 
+	(let c12=(one_step_resolution t) in ( if (c12==[]) then (raise Contradiction_reached) else (general_resolution (union l [c12]) ([t]@donelist)))   )) 
+with NO_UNIF_POSSIBLE -> donelist;;
 
 
-//remove duplicates from initial clauses, complementary pair of predicate removal -> may not be a good idea if there is non identity unification involved
+
+
+let x1 = P(Node(Sym("x"),[]));;
+let x2 = N(Node(Sym("x"),[]));;
+let x = [[x1];[x2]];;
+
+
+general_resolution x [];;
+Exception: Contradiction_reached.
+
+(* Example 2*)
+let c1 = [N(Node(Sym("beta"),[])); P(Node(Sym("alpha"),[]))];;
+let c2 = [N(Node(Sym("alpha"),[])); P(Node(Sym("beta"),[]))]
+let c3 = [N(Node(Sym("beta"),[])); N(Node(Sym("alpha"),[]))]
+let c4 = [P(Node(Sym("beta"),[])); P(Node(Sym("alpha"),[]))]
+
+let c = [c1;c2;c3;c4];;
+general_resolution c [];;
+Exception: Contradiction_reached.
+
+
+(* Example 3 *)
+let l1 = [N(Node(Sym("loves"), [V(Var("x")); V(Var("y"))]))];;
+let l2 = [P(Node(Sym("loves"), [V(Var("y")); V(Var("z"))]))];;
+let l = [l1;l2];;
+general_resolution l [];;
+Exception: Contradiction_reached.
+
+let g1= [P(Node(Sym("mother"), [  Node(Sym("L"),[]) ; Node(Sym("F"),[]) ]))];;
+let g2= [P(Node(Sym("alive"), [  Node(Sym("L"),[]) ]))];;
+let g3= [N(Node(Sym("older"), [  Node(Sym("L"),[]) ; Node(Sym("F"),[])  ]))];;
+let g4= [N(Node(Sym("mother"), [   V(Var("x")); V(Var("y")) ] ))  ;  P(Node(Sym("parent"), [   V(Var("x")); V(Var("y")) ] ))  ];;
+let g5= [N(Node(Sym("parent"), [   V(Var("x")); V(Var("y")) ] ))  ;  N(Node(Sym("alive"), [  V(Var("x")) ]))  ; P(Node(Sym("older"), [   V(Var("x")); V(Var("y")) ] ))  ];;
+let g=[g1;g2;g3;g4;g5];;
+general_resolution g [];;
+Exception: Contradiction_reached.
+
+(* raise Finished_no_contradiction *)
+(* //remove duplicates created possibly dueto unification *)
