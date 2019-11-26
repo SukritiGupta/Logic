@@ -15,7 +15,7 @@ T -> true
 | Iff(t1,t2)-> (let a=(eval t1 partass) and b=(eval t2 partass) in ((not(a)||b) && (not(b)||a)))
 ;;
 
-//varorder is a hashtbl from var name to int, partass is a Hashtbl between integer to true/false - have to copy
+(* //varorder is a hashtbl from var name to int, partass is a Hashtbl between integer to true/false - have to copy *)
 let build tT tH t i partass = 
 	if (i>varorder.length) then (if (eval t partass varorder) then 1 else 0)
 	else
@@ -23,7 +23,17 @@ let build tT tH t i partass =
 			((Hashtbl.add temp1 i true);(Hashtbl.add temp2 i false);
 			(let v0=(build tT tH t (i+1) temp1) and v1=(build tT tH t (i+1) temp2) in mk(i,v0,v1)));;
 
-let boolt op u1 u2 = 
+let get_bool x = match x with
+| 0 -> false
+| 1 -> true
+;;
+
+let boolt op u1 u2 = let a=(get_bool u1) and b=(get_bool u2) in match op with
+| "AND" -> a && b
+| "OR" -> a || b
+| "IMPL" -> (not(a) || b)
+| "IFF" -> (not(a) || b) && (not(b) || a)
+;;
 
 
 let rec apply tT tH op u1 u2 tG tT1 tT2= if (Hashtbl.mem tG ([u1,u2])) then (Hashtbl.find tG ([u1,u2]))
@@ -41,8 +51,47 @@ else if (a=j && b=0) then (restrict(tT tH (List.nth (Hashtbl.find tT1 u) 1) j b)
 		else (restrict(tT tH (List.nth (Hashtbl.find tT1 u) 2) j b))
 ;;
 
+let pow mul a n =
+  let rec g p x = function
+  | 0 -> x
+  | i ->
+      g (mul p p) (if i mod 2 = 1 then mul p x else x) (i/2)
+  in
+  g a 1 n
+;;
+(* pow ( * ) 2 16;; *)
 
+let rec satcount tT u = if (u=0) then 0 else if (u=1) then 1 else let a = (List.nth (Hashtbl.find tT u) 1) and b=(List.nth (Hashtbl.find tT u) 2) in
+(
+	(pow ( * ) 2 ((List.nth (Hashtbl.find tT a) 0)-(List.nth (Hashtbl.find tT u) 0)-1))*(satcount tT a)
+	+(pow ( * ) 2 ((List.nth (Hashtbl.find tT b) 0)-(List.nth (Hashtbl.find tT u) 0)-1))*(satcount tT b)
+)
+;;
 
-let rec satcount tT u = if (u=0) then 0 else if (u=1) then 1 else
-(()+())
+exception Error;;
 
+let rec anysat tT u = if (u=0) then raise Error else if (u=1) then (Hashtbl.create 10) else
+if ((List.nth (Hashtbl.find tT u) 1)=0) then let temp= (anysat tT (List.nth (Hashtbl.find tT u) 2)) in ((Hashtbl.add temp (List.nth (Hashtbl.find tT u) 0) true); temp)
+else let temp= (anysat tT (List.nth (Hashtbl.find tT u) 1)) in ((Hashtbl.add temp (List.nth (Hashtbl.find tT u) 0) false); temp)
+;;
+
+let rec hashadd x y tbl_list = match tbl_list with
+| h::tl -> [(hashtbl.add h x y)]@(hashadd x y tl)
+| _ -> []
+;;
+
+let rec allsat tT u = if (u=0) then [] else if (u=1) then [(Hashtbl.create 10)] else
+(hashadd (List.nth (Hashtbl.find tT u) 0) false (allsat tT (List.nth (Hashtbl.find tT u) 1))) @ 
+(hashadd (List.nth (Hashtbl.find tT u) 0) true (allsat tT (List.nth (Hashtbl.find tT u) 2)))
+;; 
+
+let rec simplify tT tH tTd d u = if (d=0) then 0 else if (u<=1) then u else if (d=1) 
+			then (mk tT tH (List.nth (Hashtbl.find tT u) 0) (simplify tT tH tTd d (List.nth (Hashtbl.find tT u) 1)) (simplify tT tH tTd d (List.nth (Hashtbl.find tT u) 2)))
+else
+	if ((List.nth (Hashtbl.find tT u) 0) = (List.nth (Hashtbl.find tTd d) 0) ) then
+		if ((List.nth (Hashtbl.find tTd d) 1) =0) then (simplify tT tH tTd (List.nth (Hashtbl.find tTd d) 2) (List.nth (Hashtbl.find tT u) 2) )
+		else if ((List.nth (Hashtbl.find tTd d) 2) =0) then (simplify tT tH tTd (List.nth (Hashtbl.find tTd d) 1) (List.nth (Hashtbl.find tT u) 1) )
+			else (mk tT tH (List.nth (Hashtbl.find tT u) 0)     (simplify tT tH tTd (List.nth (Hashtbl.find tTd d) 1) (List.nth (Hashtbl.find tT u) 1) )     (simplify tT tH tTd (List.nth (Hashtbl.find tTd d) 2) (List.nth (Hashtbl.find tT u) 2) )  )
+	else if ((List.nth (Hashtbl.find tT u) 0) > (List.nth (Hashtbl.find tTd d) 0)) then (mk tT tH  (List.nth (Hashtbl.find tTd d) 0)  (simplify tT tH tTd (List.nth (Hashtbl.find tTd d) 1) u )     (simplify tT tH tTd (List.nth (Hashtbl.find tTd d) 2) u )  )
+	else (mk tT tH (List.nth (Hashtbl.find tT u) 0)  (simplify tT tH tTd d (List.nth (Hashtbl.find tT u) 1) )     (simplify tT tH tTd d (List.nth (Hashtbl.find tT u) 2))  )
+;;
